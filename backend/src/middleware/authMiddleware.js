@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
    
 
 //  Protected Route Middleware (Only Logged In Users)
-exports.protected = (req,res,next)=>{
+   const protect = (req,res,next)=>{
  try {
     const token = req.cookies.token;
     if (!token) {
@@ -24,11 +24,12 @@ exports.protected = (req,res,next)=>{
 
 
 
-// Admin Authorize Middleware (Only Admin Allowed)
-
-exports.isAdmin =  (req,res,next)=>{
+const  isAdmin =  (req,res,next)=>{
     if (req.user && req.user.role==="admin") {
         next();
     }
     req.status(401).json({success:false , message:"Access denied! Admin rights required"})
-}
+};
+
+
+export  {protect,isAdmin};

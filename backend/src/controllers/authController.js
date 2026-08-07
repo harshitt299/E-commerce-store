@@ -1,7 +1,7 @@
-import user from "../models";
+import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { use } from "react";
+
 
 // helper function to generate jwt token
 const generateToken = (userId,role)=>{
@@ -15,7 +15,7 @@ const generateToken = (userId,role)=>{
 
 // Register User 
 
-exports.registerUser = async(req , res)=>{
+ const registerUser = async(req , res)=>{
     try {
          let {name ,email , password, role } =req.body 
         
@@ -66,8 +66,7 @@ exports.registerUser = async(req , res)=>{
 
 
     // login User
-
-    exports.loginUser = async (req,res)=>{
+const loginUser = async (req,res)=>{
         try {
             const {email,password}= req.body;
             const user = await User.findOne({email});
@@ -110,7 +109,7 @@ exports.registerUser = async(req , res)=>{
 
 
     // logout user 
-    exports.logoutUser = (req,res)=>{
+const logoutUser = (req,res)=>{
     // for logout clear all cokkies immediately
     res.cookie("token" , "",{
         httpOnly :true,
@@ -118,3 +117,5 @@ exports.registerUser = async(req , res)=>{
     })   
     res.status(200).json({success:true, message: "Logout succcessfully!"});
 };
+
+export {registerUser,loginUser,logoutUser};
