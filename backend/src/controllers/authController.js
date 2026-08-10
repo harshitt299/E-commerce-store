@@ -1,7 +1,8 @@
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-
+import ApiError from "../utils/ApiError.js";
+import asynchandler from "../utils/asynchandler.js";
 
 // helper function to generate jwt token
 const generateToken = (userId,role)=>{
@@ -15,8 +16,7 @@ const generateToken = (userId,role)=>{
 
 // Register User 
 
- const registerUser = async(req , res)=>{
-    try {
+ const registerUser =asynchandler( async(req , res)=>{
          let {name ,email , password, role } =req.body 
         
     const existUser = await User.findOne({email})
@@ -56,18 +56,14 @@ const generateToken = (userId,role)=>{
             email : newUser.email,
             name : newUser.name,
         }
+    })
     });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error', error: error.message });
-    }
-   
-    };
 
 
 
     // login User
-const loginUser = async (req,res)=>{
-        try {
+const loginUser = asynchandler(async (req,res)=>{
+        
             const {email,password}= req.body;
             const user = await User.findOne({email});
             if (!user) {
@@ -101,10 +97,8 @@ const loginUser = async (req,res)=>{
                 }
             });
 
-        } catch (error) {
-            res.status(500).json({success:false, message:"server Error" , error: error.message})
-        }
-    };
+       
+    });
 
 
 
