@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import connectDB from "./config/dbs.js";
 import cookieParser from "cookie-parser";
 import router from "./routes/authRoutes.js";
+import errorhandler from "./middleware/errorMiddleware.js";
 
 dotenv.config();
 
@@ -22,6 +23,10 @@ app.get("/" , (req,res)=>{
     res.send("Backend running")
 });
 
+
+
+
+app.use(errorhandler);
 connectDB();
   
 const Port = process.env.PORT || 3000
