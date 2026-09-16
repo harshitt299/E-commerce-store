@@ -38,3 +38,72 @@ const createProduct = asynchandler(async (req,res)=>{
     })
 
 });
+
+
+//  Get All products (with search,filter&pagination)
+
+const getAllProduct = asynchandler(async(req,res)=>{
+    let {search ,category , minPrice ,maxPrice,page = 1, limit = 10} = req.body;
+
+    let filterQuery = {};
+
+    if(search){
+        filterQuery.$or = [
+            {name : {$regex : search , $options : "i"}},
+            {description : { $regex : search , $options : "i"}}
+        ];
+    };
+
+
+    if(category) {
+        filterQuery.category = category;
+    }
+
+    if(minPrice || maxPrice){
+        if(minPrice)filterQuery.price.$gte = Number(minPrice);
+        if(maxPrice)filterQuery.price.$lte = Number(maxPrice);
+    }
+
+
+    const skip = (Number(page)-1)*Number(limit);
+
+
+
+    const products  =  await Product
+    .find(filterQuery)
+    .skip(skip)
+    .limit(Number(limit))
+    .sort({createdAt : -1});
+
+    const totalProduct = await Product.countDocuments(filterQuery);
+
+
+    res.status(200).json({
+        success : true,
+        totalProduct ,
+         currentPage : Number(page),
+         totaPages : Math.ceil(totalProduct / Number(limit)),
+         products ,
+    });
+
+    
+});
+
+
+// Get single Product 
+
+const getProductById = asynchandler(async(req,res)=>{
+    let {id} =  req.params;
+    const product = await Product.findById(id);
+    
+    if(!product){
+        throw new ApiError(404, "Product not found");
+    };
+
+    res.status(200).json({
+        success : true,
+        product ,
+    });
+});
+
+export{getAllProduct, getProductById , createProduct};
