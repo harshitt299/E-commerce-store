@@ -106,4 +106,85 @@ const getProductById = asynchandler(async(req,res)=>{
     });
 });
 
-export{getAllProduct, getProductById , createProduct};
+
+
+
+const updateProduct = asynchandler (async(req,res)=>{
+    const {id} = req.params;
+
+
+    const product  = await Product.findById(id);
+
+
+
+     if(!product){
+        throw new ApiError(404, "Product not fond");
+     }
+
+
+
+     let imageUrls = product.images;
+
+     if(req.files && req.files.length>0){
+        const imageLocalPath =req.files.map((file)=>file.path);
+     }
+
+
+
+     imageUrls = await Promise.all(
+        imageLocalPath.map(async(path)=> await uploadOnCloudinary(path))
+     )
+
+
+
+
+
+     const updatedData = {
+        ...req.body,
+        images : imageUrls,
+     };
+
+
+
+
+     product = await Product.findByIdAndUpdate(id,updatedData,{
+        new : true,
+        runValidators : true,
+     });
+
+
+
+     res.status(200).json({
+        success: true,
+        message : "product updated duccessfully",
+        product,
+     });
+
+
+
+});
+
+const deleteProduct = asynchandler (async(req,res)=>{
+    const {id} = req.params;
+
+
+     const product  = await Product.findById(id);
+
+
+
+     if(!product){
+        throw new ApiError(404, "Product not fond");
+     }
+
+     await Product.findByIdAndDelete(id);
+
+
+      res.status(200).json({
+        success: true,
+        message : "product deleted successfully",
+       
+     });
+
+});
+
+export{getAllProduct, getProductById , createProduct ,updateProduct , deleteProduct};
