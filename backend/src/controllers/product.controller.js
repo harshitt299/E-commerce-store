@@ -1,7 +1,7 @@
-import Product from "./models/product.model.js";
-import asynchandler from "./utils/asynchandler.js";
-import ApiError from "./utils/ApiEror.js";
-import uploadOnCloudinary from "./utils/cloudinary.js";
+import  Product  from "../models/product.model.js";
+import asynchandler from "../utils/asynchandler.js";
+import ApiError from "../utils/ApiError.js";
+import uploadOnCloudinary from "../utils/cloudinary.js";
 
 // create product
 const createProduct = asynchandler(async (req,res)=>{
@@ -10,17 +10,17 @@ const createProduct = asynchandler(async (req,res)=>{
         throw  new ApiError (400, "All fields must be provided");
     };
     // file upload 
-    const imageLocalPaths = req.files?.map(file=> file.path);
+    let imageLocalPaths = req.files?.map(file=> file.path);
     if (!imageLocalPaths || imageLocalPaths.length ===0) {
         throw new ApiError (400, "At least one product image is required!")
     }
 
     //cloudinary upload
-    const imageUrls = await Promise.all(
+    let imageUrls = await Promise.all(
         imageLocalPaths.map(async(path)=> await uploadOnCloudinary(path))
     );
 
-    const product = new Product.create ({
+    let product =  Product.create ({
         name,
         description,
         stock,
@@ -43,7 +43,7 @@ const createProduct = asynchandler(async (req,res)=>{
 //  Get All products (with search,filter&pagination)
 
 const getAllProduct = asynchandler(async(req,res)=>{
-    let {search ,category , minPrice ,maxPrice,page = 1, limit = 10} = req.body;
+    let {search ,category , minPrice ,maxPrice,page = 1, limit = 10} = req.query;
 
     let filterQuery = {};
 
@@ -65,17 +65,17 @@ const getAllProduct = asynchandler(async(req,res)=>{
     }
 
 
-    const skip = (Number(page)-1)*Number(limit);
+    let skip = (Number(page)-1)*Number(limit);
 
 
 
-    const products  =  await Product
+    let products  =  await Product
     .find(filterQuery)
     .skip(skip)
     .limit(Number(limit))
     .sort({createdAt : -1});
 
-    const totalProduct = await Product.countDocuments(filterQuery);
+    let totalProduct = await Product.countDocuments(filterQuery);
 
 
     res.status(200).json({
@@ -94,7 +94,7 @@ const getAllProduct = asynchandler(async(req,res)=>{
 
 const getProductById = asynchandler(async(req,res)=>{
     let {id} =  req.params;
-    const product = await Product.findById(id);
+    let product = await Product.findById(id);
     
     if(!product){
         throw new ApiError(404, "Product not found");
@@ -110,10 +110,10 @@ const getProductById = asynchandler(async(req,res)=>{
 
 
 const updateProduct = asynchandler (async(req,res)=>{
-    const {id} = req.params;
+    let {id} = req.params;
 
 
-    const product  = await Product.findById(id);
+    let  product  = await Product.findById(id);
 
 
 
@@ -126,7 +126,7 @@ const updateProduct = asynchandler (async(req,res)=>{
      let imageUrls = product.images;
 
      if(req.files && req.files.length>0){
-        const imageLocalPath =req.files.map((file)=>file.path);
+        let  imageLocalPath =req.files.map((file)=>file.path);
      }
 
 
@@ -139,7 +139,7 @@ const updateProduct = asynchandler (async(req,res)=>{
 
 
 
-     const updatedData = {
+     let updatedData = {
         ...req.body,
         images : imageUrls,
      };
@@ -165,10 +165,10 @@ const updateProduct = asynchandler (async(req,res)=>{
 });
 
 const deleteProduct = asynchandler (async(req,res)=>{
-    const {id} = req.params;
+    let {id} = req.params;
 
 
-     const product  = await Product.findById(id);
+     let product  = await Product.findById(id);
 
 
 

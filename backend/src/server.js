@@ -2,7 +2,8 @@ import express from "express";
 import dotenv from "dotenv";
 import connectDB from "./config/dbs.js";
 import cookieParser from "cookie-parser";
-import router from "./routes/authRoutes.js";
+import authRouter from "./routes/auth.routes.js";
+import productRouter from "./routes/product.route.js"
 import errorhandler from "./middleware/errorMiddleware.js";
 
 dotenv.config();
@@ -17,7 +18,8 @@ app.use(cookieParser());
 
 
 // Routes
-app.use("/api/auth" ,router);
+app.use("/api/v1/auth" ,authRouter);
+app.use("/api/v1/products" , productRouter)
 
 app.get("/" , (req,res)=>{
     res.send("Backend running")
