@@ -73,5 +73,39 @@ const getCart = asynchandler(async(req,res)=>{
     };
 
 
-    
-})
+
+});
+
+
+
+
+// update product quantity
+
+const updateCartQuantity = asynchandler(async(req,res)=>{
+    let {productId , quantity }  = req.body;
+
+    if(quantity < 1){
+        throw new ApiError(400 ,"Quantity must be at least 1!");
+    }
+
+    const  cart  = await Cart.findOne({user : req.user_id});
+
+    if(!cart){
+         throw new ApiError(404 ,"Cart no found!");
+    };
+
+    const item = cart.items.find((item)=>item.product.toString()===productId);
+
+    if(!item){
+         throw new ApiError(404 ,"Product not found in cart!");
+    };
+
+    item.quantity = Number(quantity);
+
+    await cart.save();
+    res.status(200).json({
+        success : true,
+        message: "Cart updated successfully!",
+        cart,
+    });
+});
