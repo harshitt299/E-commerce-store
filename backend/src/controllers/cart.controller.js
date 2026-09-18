@@ -109,3 +109,28 @@ const updateCartQuantity = asynchandler(async(req,res)=>{
         cart,
     });
 });
+
+// Remove items in cart
+
+const removeFromCart = asynchandler(async(req,res)=>{
+    const {productId } = req.params;
+
+   const cart  = await Cart.findOne({user: req.user._id});
+
+   if(!cart){
+    throw new ApiError(404 , "Cart not found")
+   }
+
+   cart.items = cart.items.filter((item) =>item.product.toString()!=productId);
+   await cart.save();
+
+
+   res.status(200).json({
+    success:true,
+    message : "item remove succesfully",
+    cart,
+   })
+});
+
+
+export {addToCart , updateCartQuantity , getCart , removeFromCart};
