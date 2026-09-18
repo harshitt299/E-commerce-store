@@ -16,7 +16,7 @@ const cartSchema = new mongoose.Schema({
         quantity :{
             type : Number,
             required: true,
-            mibn : 1,
+            min : 1,
             default : 1
         },
         price: {
@@ -29,6 +29,14 @@ const cartSchema = new mongoose.Schema({
         default : 0,
     }
 },{timestamps: true});
+
+
+cartSchema.pre("save" , function(next){
+    this.totalCartPrice = this.items.reduce((total,item)=>{
+        return total+(item.price*item.quantity);
+    }, 0);
+    next();
+});
 
 const Cart =  mongoose.model("Cart" ,cartSchema);
 export default Cart;
