@@ -5,6 +5,7 @@ import uploadOnCloudinary from "../utils/cloudinary.js";
 import Cart from "../models/cart.model.js";
 import Order from "../models/order.model.js";
 import { razorpayInstance } from "../config/razorpay.js";
+import crypto from "crypto";
 
 
 
@@ -96,3 +97,55 @@ const newOrder = await Order.create({
 });
 
 //  verify Razorpay payment
+
+const verifyPayment = asynchandler(async(req,res)=>{
+    const {razorpay_order_id,
+    razorpay_payment_id,
+    razorpay_signature,
+    dbOrderId, } = req.body;
+
+    // HMAC Signature Check (Cryptographic Verification)
+    const body = razorpay_order_id + "|" + razorpay_payment_id ;
+    const expectedSignature = crypto
+    .createHmac("sha256" ,process.env.RAZORPAY_API_SECRET)
+    .update(body.toString())
+    .diges("hex");
+    
+    if(expectedSignature !=razorpay_signature){
+        throw new ApiError(400 ,"Paymewnt verfication failed! Invalid Signature.")
+    };
+
+    const order = await Order.findById(dbOrderId);
+    if(!order){
+        throw new ApiError(404, "Order not found!");
+    }
+
+    order.isPaid =true;
+    order.paidAt = Date.now();
+    order.paymentResult = {
+        razorpay_payment_id ,
+        razorpay_order_id,
+        razorpay_signature,
+        status : "Paid",
+    }
+
+    await order.save();
+
+
+    for(const item of order.orderItems){
+        await Product.findByIdAndUpdate(item.product  ,{
+            $inc : {stock : -item.quantity}
+        })
+    }
+
+    await Cart.findOneAndDelete({user: req.user_id});
+
+    res.status(201).json({
+        success:true,
+        message : "Payment verified and order placed successfully!",
+        order,
+    });
+
+});
+
+export {createOrder ,verifyPayment};
