@@ -54,9 +54,10 @@ const orderSchema = new mongoose.Schema({
         default : "Online",
     },
     paymentResult :{
-        id : String,
-        status : String,
-        update_time : String,
+      razorpay_order_id : String,
+      razorpay_payment_id : String,
+      razorpay_signature : String,
+      status : String,
     },
     totalAmount : {
          type : Number,
@@ -68,6 +69,13 @@ const orderSchema = new mongoose.Schema({
     },
     paidAt :{
         type : Date,
+    },
+    isDelivered : {
+        type: Boolean,
+        default : false,
+    },
+    delivereAt :{
+        type : Date
     },
     orderStatus:{
         type: String,
