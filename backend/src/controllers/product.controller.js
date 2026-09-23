@@ -10,17 +10,18 @@ const createProduct = asynchandler(async (req,res)=>{
         throw  new ApiError (400, "All fields must be provided");
     };
     // file upload 
+    console.log(req.files)
     let imageLocalPaths = req.files?.map(file=> file.path);
     if (!imageLocalPaths || imageLocalPaths.length ===0) {
         throw new ApiError (400, "At least one product image is required!")
     }
-
+    console.log(imageLocalPaths)
     //cloudinary upload
     let imageUrls = await Promise.all(
         imageLocalPaths.map(async(path)=> await uploadOnCloudinary(path))
     );
-
-    let product =  Product.create ({
+    console.log(imageUrls)
+    let product = await  Product.create ({
         name,
         description,
         stock,

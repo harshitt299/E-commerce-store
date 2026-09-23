@@ -19,7 +19,7 @@ router.get("/:id", getProductById);
 // Protected routes
 
 // create product maxmimum 5 images
-router.post("/" , protect , isAdmin , upload.array("images" ,5),createProduct);
+router.post("/" , protect ,isAdmin, upload.array("images" ,5),createProduct);
 router.put("/:id" , protect , isAdmin , updateProduct);
 router.delete("/:id" , protect , isAdmin , deleteProduct);
 

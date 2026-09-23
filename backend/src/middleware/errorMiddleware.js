@@ -7,7 +7,7 @@ const  errorhandler = (err,req,res,next)=>{
         const message =error.message || "Interval Server eroor";
         error = new ApiError(statusCode ,message,[],err.stack);
     }
-    return res.status(statusCode).json({
+    return res.status(error.statusCode ||500).json({
         success : error.success,
         message:error.message,
         errors : error.errors,

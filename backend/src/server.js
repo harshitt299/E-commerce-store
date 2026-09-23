@@ -20,7 +20,7 @@ app.use(cookieParser());
 
 
 // Routes
-app.use("/api/v1/auth" ,authRouter);
+app.use("/api/v1/users" ,authRouter);
 app.use("/api/v1/products" , productRouter);
 app.use("/api/v1/cart" , cartRouter);
 app.use("/api/v1/orders" , orderRouter);
