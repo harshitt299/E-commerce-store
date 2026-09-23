@@ -8,20 +8,22 @@ import Cart from "../models/cart.model.js";
 
 
 const addToCart = asynchandler(async(req,res)=>{
+    
      let {productId , quantity=1} =  req.body;
-     const userId = req.user._id;
-
+     const userId = req.user?.id;
+    
      const product = await Product.findById(productId);
 
      if(!product){
+       
         throw new ApiError(404 , "product not found");
      }
-
+    
 
      let cart  =  await Cart.findOne({user : userId});
 
      if(cart){
-        const itemIndex = cart.items.findIndex((item)=> item.product.toString === productId);
+        const itemIndex = cart.items.findIndex((item)=> item.product.toString() === productId);
 
         if(itemIndex > -1){
             cart.items[itemIndex].quantity +=Number(quantity);
@@ -32,9 +34,10 @@ const addToCart = asynchandler(async(req,res)=>{
                 price : product.price,
             });
           }
-
+          
         }else{
-            let cart = new Cart.create({
+            console.log(userId)
+              cart = await Cart.create({
                 user : userId,
                 items : [
                     {
@@ -45,7 +48,7 @@ const addToCart = asynchandler(async(req,res)=>{
                 ],
             });
         };
-
+        console.log("error yha h")
         await cart.save();
 
       return   res.status(200).json({
@@ -88,7 +91,7 @@ const updateCartQuantity = asynchandler(async(req,res)=>{
         throw new ApiError(400 ,"Quantity must be at least 1!");
     }
 
-    const  cart  = await Cart.findOne({user : req.user_id});
+    const  cart  = await Cart.findOne({user : req.user.id});
 
     if(!cart){
          throw new ApiError(404 ,"Cart no found!");
@@ -115,7 +118,7 @@ const updateCartQuantity = asynchandler(async(req,res)=>{
 const removeFromCart = asynchandler(async(req,res)=>{
     const {productId } = req.params;
 
-   const cart  = await Cart.findOne({user: req.user._id});
+   const cart  = await Cart.findOne({user: req.user.id});
 
    if(!cart){
     throw new ApiError(404 , "Cart not found")

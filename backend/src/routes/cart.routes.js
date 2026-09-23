@@ -5,12 +5,10 @@ import { addToCart,getCart,updateCartQuantity,removeFromCart } from "../controll
 
 const router = express.Router();
 
-router.use(protect);
-
-router.get("/" ,getCart);
-router.post ("/" , addToCart);
-router.patch("/update" , updateCartQuantity);
-router.delete("/remove/:productId" ,removeFromCart);
+router.get("/" ,protect ,getCart);
+router.post ("/" ,protect , addToCart);
+router.patch("/update" ,protect , updateCartQuantity);
+router.delete("/remove/:productId" ,protect ,removeFromCart);
 
 
 export default router ; 

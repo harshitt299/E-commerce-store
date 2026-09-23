@@ -7,7 +7,7 @@ import asynchandler from "../utils/asynchandler.js";
 // helper function to generate jwt token
 const generateToken = (userId,role)=>{
      return jwt.sign(
-        {id : userId, role : role},
+        {_id : userId, role : role},
         process.env.JWT_SECRET,
         {expiresIn :"7d"},
      )
