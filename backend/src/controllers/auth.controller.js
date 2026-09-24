@@ -17,8 +17,12 @@ const generateToken = (userId,role)=>{
 // Register User 
 
  const registerUser =asynchandler( async(req , res)=>{
-         let {name ,email , password, role } =req.body 
-        
+         let {name ,email , password } =req.body 
+        if(!email || !password){
+            throw new ApiError(400, "please enter valid credentials!")
+        };
+
+
     const existUser = await User.findOne({email})
     if(existUser){
        return res.status(400).json({success:false , message : "Email already exists!"})
@@ -34,7 +38,7 @@ const generateToken = (userId,role)=>{
         name : name,
         email : email,
         password : hashedPass,
-        role: role || "customer"
+        role: "customer"
     });
 
     const token = generateToken(newUser._id,newUser.role);
@@ -65,6 +69,11 @@ const generateToken = (userId,role)=>{
 const loginUser = asynchandler(async (req,res)=>{
         
             const {email,password}= req.body;
+
+             if(!email || !password){
+            throw new ApiError(400, "please enter valis credentials!")
+        }; 
+
             const user = await User.findOne({email});
             if (!user) {
                return  res.status(400).json({success:false, message:"INVALID EMAIL or PASSWORD"})

@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
 import connectDB from "./config/dbs.js";
 import cookieParser from "cookie-parser";
 import authRouter from "./routes/auth.routes.js";
@@ -11,8 +12,16 @@ import orderRouter from "./routes/order.routes.js";
 dotenv.config();
 
 
-const app = express();
 
+
+
+
+const app = express();
+app.use(cors({
+  origin: "http://localhost:5173", // apna frontend URL dalo
+  credentials: true,
+}));
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
 
@@ -24,6 +33,7 @@ app.use("/api/v1/users" ,authRouter);
 app.use("/api/v1/products" , productRouter);
 app.use("/api/v1/cart" , cartRouter);
 app.use("/api/v1/orders" , orderRouter);
+
 
 
 app.get("/" , (req,res)=>{

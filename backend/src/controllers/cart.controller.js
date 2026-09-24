@@ -10,7 +10,7 @@ import Cart from "../models/cart.model.js";
 const addToCart = asynchandler(async(req,res)=>{
     
      let {productId , quantity=1} =  req.body;
-     const userId = req.user?.id;
+     const userId = req.user?._id;
     
      const product = await Product.findById(productId);
 
@@ -36,7 +36,6 @@ const addToCart = asynchandler(async(req,res)=>{
           }
           
         }else{
-            console.log(userId)
               cart = await Cart.create({
                 user : userId,
                 items : [
@@ -48,7 +47,6 @@ const addToCart = asynchandler(async(req,res)=>{
                 ],
             });
         };
-        console.log("error yha h")
         await cart.save();
 
       return   res.status(200).json({
@@ -75,7 +73,10 @@ const getCart = asynchandler(async(req,res)=>{
         });
     };
 
-
+     return res.status(200).json({
+            success : true,
+            cart,
+     });
 
 });
 
@@ -91,7 +92,7 @@ const updateCartQuantity = asynchandler(async(req,res)=>{
         throw new ApiError(400 ,"Quantity must be at least 1!");
     }
 
-    const  cart  = await Cart.findOne({user : req.user.id});
+    const  cart  = await Cart.findOne({user : req.user._id});
 
     if(!cart){
          throw new ApiError(404 ,"Cart no found!");
@@ -118,7 +119,7 @@ const updateCartQuantity = asynchandler(async(req,res)=>{
 const removeFromCart = asynchandler(async(req,res)=>{
     const {productId } = req.params;
 
-   const cart  = await Cart.findOne({user: req.user.id});
+   const cart  = await Cart.findOne({user: req.user._id});
 
    if(!cart){
     throw new ApiError(404 , "Cart not found")

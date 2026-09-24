@@ -20,7 +20,7 @@ router.get("/:id", getProductById);
 
 // create product maxmimum 5 images
 router.post("/" , protect ,isAdmin, upload.array("images" ,5),createProduct);
-router.put("/:id" , protect , isAdmin , updateProduct);
+router.put("/:id" , protect , isAdmin ,upload.array("images" , 5), updateProduct);
 router.delete("/:id" , protect , isAdmin , deleteProduct);
 
 

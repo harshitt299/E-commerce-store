@@ -12,7 +12,7 @@ import crypto from "crypto";
 
 const createOrder = asynchandler(async(req,res)=>{
     let {shippingAddress ,paymentMethod} = req.body;
-    const userId = req.user_id;
+    const userId = req.user._id;
 
 
     const cart =  await Cart.findOne({user : userId}).populate("items.product");
@@ -49,8 +49,8 @@ const createOrder = asynchandler(async(req,res)=>{
     });
 
     for(const item of cart.items){
-        await Product.findByIdAndUpdate(items.product.id, {
-            $inc : {stock : -items.quantity},
+        await Product.findByIdAndUpdate(item.product.id, {
+            $inc : {stock : -item.quantity},
         });
     }
     await  Cart.findOneAndDelete({user :userId});
@@ -67,7 +67,7 @@ const createOrder = asynchandler(async(req,res)=>{
  const options = {
     amount : Math.round(totalAmount*100),
     currency : "INR",
-    reciept : `reciept_${Date.now()}`,
+    receipt : `receipt_${Date.now()}`,
  };
 
  const razorpayOrder = await razorpayInstance.orders.create(options);
@@ -109,7 +109,7 @@ const verifyPayment = asynchandler(async(req,res)=>{
     const expectedSignature = crypto
     .createHmac("sha256" ,process.env.RAZORPAY_API_SECRET)
     .update(body.toString())
-    .diges("hex");
+    .digest("hex");
     
     if(expectedSignature !=razorpay_signature){
         throw new ApiError(400 ,"Paymewnt verfication failed! Invalid Signature.")
@@ -138,7 +138,7 @@ const verifyPayment = asynchandler(async(req,res)=>{
         })
     }
 
-    await Cart.findOneAndDelete({user: req.user_id});
+    await Cart.findOneAndDelete({user: req.user._id});
 
     res.status(201).json({
         success:true,
