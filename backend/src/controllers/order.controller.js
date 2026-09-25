@@ -153,10 +153,10 @@ const verifyPayment = asynchandler(async(req,res)=>{
 
 // Get My orders
 
-const myOrders = asynchandler(async(req,res)=>{
+const getMyOrders = asynchandler(async(req,res)=>{
     let userId = req.user._id;
     if(!userId){
-        throw ApiError(404, "Opps can't find any orders!")
+        throw new  ApiError(404, "Opps can't find any orders!")
     };
 
     let{page =1 , limit=10} = req.query;
@@ -171,7 +171,7 @@ const myOrders = asynchandler(async(req,res)=>{
 
     const totalOrders = await Order.countDocuments({user:userId});
 
-    return res.status(201).json({
+    return res.status(200).json({
         success : true,
         message : "orders fetched succesfully",
         myOrders,
@@ -190,13 +190,13 @@ const getMyOrderById = asynchandler(async(req,res)=>{
     const order  = await Order.findById(id).populate("user" , "name email")
 
     if(!order){
-        throw new ApiError("404" , "order not found!")
+        throw new ApiError(404 , "order not found!")
     };
     if(order.user._id.toString() !==req.user._id && req.user.role!="admin"){
         throw new ApiError(403, "you are unauthorised")
     };
 
-    return res.status(201).json({
+    return res.status(200).json({
         success : true,
         order,
         message : "order feteched successfully",
@@ -207,19 +207,15 @@ const getMyOrderById = asynchandler(async(req,res)=>{
 
 
 // get all orders by admin 
-const getAllOrder = asynchandler(async(req,res)=>{
-    const { page = 1 , limit =10, status="processing"} = req.query;
-
-    if(req.user.role!="admin"){
-        throw new ApiError(404, "unauthorised request!")
-    };
+const getAllOrders = asynchandler(async(req,res)=>{
+    const { page = 1 , limit =10, status} = req.query;
      
     let skip = (Number(page)-1)*Number(limit);
 
     let filterQuery = {};
 
     if(status){
-        filterQuery.order.status = status
+        filterQuery.orderStatus = status
     };
 
     const allOrders = await Order
@@ -231,7 +227,7 @@ const getAllOrder = asynchandler(async(req,res)=>{
 
     let totalOrders = await Order.countDocuments(filterQuery);
 
-    return res.status(201).json({
+    return res.status(200).json({
         success : true,
         message : "orders fetched succesfully",
         allOrders,
@@ -244,5 +240,5 @@ const getAllOrder = asynchandler(async(req,res)=>{
 
 
 
-export {createOrder ,verifyPayment , myOrders , getMyOrderById , getAllOrder};
+export {createOrder ,verifyPayment ,getMyOrders , getMyOrderById , getAllOrders};
 
