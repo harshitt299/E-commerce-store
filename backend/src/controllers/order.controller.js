@@ -10,6 +10,7 @@ import crypto from "crypto";
 
 
 
+
 const createOrder = asynchandler(async(req,res)=>{
     let {shippingAddress ,paymentMethod} = req.body;
     const userId = req.user._id;
@@ -239,6 +240,107 @@ const getAllOrders = asynchandler(async(req,res)=>{
 });
 
 
+const updateOrderStatus =asynchandler(async(req,res)=>{
+    const {id} = req.params;
+    const {status} = req.body;
+    if(!status || !["Shipped" , "Delivered" , "Cancelled"].includes(status)){
+        throw new ApiError(400, "Invalid status!")
+    };
 
-export {createOrder ,verifyPayment ,getMyOrders , getMyOrderById , getAllOrders};
+
+    let order = await Order.findById(id);
+    if(!order){
+        throw new ApiError(404, "order not found!")
+    };
+
+    if(order.orderStatus === "Delivered"){
+        throw new ApiError (400, "Order is already Delivered");
+    };
+    if(order.orderStatus === "Cancelled"){
+        throw new ApiError (400, "Cancelled Order can't be updated!");
+    };
+
+
+
+
+    if(order.orderStatus ==="Processing" && status ==="Delivered"){
+        throw new ApiError(400, "First Shipped the Order then Deliver It")
+    };
+
+    if(status == "Delivered"){
+        order.isDelivered=true;
+        order.deliveredAt=Date.now();
+        if(order.paymentMethod==="COD"){
+            order.isPaid =true,
+            order.paidAt = Date.now();
+        }
+    };
+
+    if(status==="Cancelled"){
+        for(const item of order.orderItems){
+            await Product.findByIdAndUpdate(item.product,{
+                $inc : {stock : item.quantity}
+            });
+        }
+    }
+    order.orderStatus = status;
+    await order.save();
+
+    return res.status(200).json({
+        success : true,
+        message : "order status updated successfully",
+        order,
+    });
+
+    
+});
+
+
+
+const cancelOrder = asynchandler(async(req,res)=>{
+    let {id} =req.params;
+   let order = await Order.findById(id);
+
+
+   if(!order){
+        throw new ApiError(404, "Order not found")
+    };
+
+    if( order.user.toString()!=req.user._id){
+        throw new ApiError(403, "unauthorised request!")
+    };
+
+
+
+
+    if(order.orderStatus!="Processing"){
+        throw new ApiError(400, "Order is Cancelled only in Processing state! ")
+    };
+
+    
+
+    for(const item of order.orderItems){
+        await Product.findByIdAndUpdate(item.product, {
+            $inc :{stock : item.quantity}
+        });
+    }
+    order.orderStatus = "Cancelled";
+    await order.save();
+
+    return res.status(200).json({
+        success :true,
+        message : "Order Cancelled!",
+        order,
+    });
+
+})
+
+export {createOrder ,
+    verifyPayment ,
+    getMyOrders , 
+    getMyOrderById ,
+    getAllOrders ,
+    updateOrderStatus,
+    cancelOrder,
+};
 
