@@ -96,6 +96,8 @@ const newOrder = await Order.create({
 
 });
 
+
+
 //  verify Razorpay payment
 
 const verifyPayment = asynchandler(async(req,res)=>{
@@ -148,5 +150,99 @@ const verifyPayment = asynchandler(async(req,res)=>{
 
 });
 
-export {createOrder ,verifyPayment};
+
+// Get My orders
+
+const myOrders = asynchandler(async(req,res)=>{
+    let userId = req.user._id;
+    if(!userId){
+        throw ApiError(404, "Opps can't find any orders!")
+    };
+
+    let{page =1 , limit=10} = req.query;
+    let skip = (Number(page)-1)*Number(limit);
+
+
+    const myOrders = await Order
+    .find({user : userId})
+    .sort({createdAt :-1})
+    .skip(skip)
+    .limit(Number(limit));
+
+    const totalOrders = await Order.countDocuments({user:userId});
+
+    return res.status(201).json({
+        success : true,
+        message : "orders fetched succesfully",
+        myOrders,
+        totalOrders,
+        currentPage : Number(page),
+        totalPages: Math.ceil(totalOrders/Number(limit))
+    });
+
+});
+
+
+
+// Get my order by id
+const getMyOrderById = asynchandler(async(req,res)=>{
+    let {id} = req.params;
+    const order  = await Order.findById(id).populate("user" , "name email")
+
+    if(!order){
+        throw new ApiError("404" , "order not found!")
+    };
+    if(order.user._id.toString() !==req.user._id && req.user.role!="admin"){
+        throw new ApiError(403, "you are unauthorised")
+    };
+
+    return res.status(201).json({
+        success : true,
+        order,
+        message : "order feteched successfully",
+    });
+
+});
+
+
+
+// get all orders by admin 
+const getAllOrder = asynchandler(async(req,res)=>{
+    const { page = 1 , limit =10, status="processing"} = req.query;
+
+    if(req.user.role!="admin"){
+        throw new ApiError(404, "unauthorised request!")
+    };
+     
+    let skip = (Number(page)-1)*Number(limit);
+
+    let filterQuery = {};
+
+    if(status){
+        filterQuery.order.status = status
+    };
+
+    const allOrders = await Order
+    .find(filterQuery)
+    .populate("user" , "name email")
+    .sort({createdAt :-1})
+    .skip(skip)
+    .limit(Number(limit));
+
+    let totalOrders = await Order.countDocuments(filterQuery);
+
+    return res.status(201).json({
+        success : true,
+        message : "orders fetched succesfully",
+        allOrders,
+        currentPage : Number(page),
+        totalPages : Math.ceil(totalOrders/Number(limit)),
+        totalOrders,
+
+    })
+});
+
+
+
+export {createOrder ,verifyPayment , myOrders , getMyOrderById , getAllOrder};
 
