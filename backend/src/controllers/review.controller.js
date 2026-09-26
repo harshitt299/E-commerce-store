@@ -126,8 +126,8 @@ const updateProductReview = asynchandler(async(req,res)=>{
 
 
 const deleteProductReview= asynchandler(async(req,res)=>{
-    let {id} = req.params;
-    const review = await Review.findById(id);
+    let {reviewId} = req.params;
+    const review = await Review.findById(reviewId);
     
     if(!review){
         throw new ApiError(404, "Review not found")
@@ -137,7 +137,7 @@ const deleteProductReview= asynchandler(async(req,res)=>{
         throw new ApiError(403, "You can only delete your own Reviews")
     };
 
-    await Review.findByIdAndDelete(id);
+    await Review.findByIdAndDelete(reviewId);
      return res.status(200).json({
         success : true,
         message : "Review deleted successfully",
