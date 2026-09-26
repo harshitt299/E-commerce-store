@@ -306,7 +306,7 @@ const cancelOrder = asynchandler(async(req,res)=>{
         throw new ApiError(404, "Order not found")
     };
 
-    if( order.user.toString()!=req.user._id){
+    if( order.user.toString()!=req.user._id.toString()){
         throw new ApiError(403, "unauthorised request!")
     };
 

@@ -75,6 +75,75 @@ const getProductReviews = asynchandler(async(req,res)=>{
         totalPages : Math.ceil(totalReviews/Number(limit)),
         reviews,
     });
+});
+
+const updateProductReview = asynchandler(async(req,res)=>{
+    let {reviewId}= req.params;
+    let{rating ,comment} = req.body;
+
+    if(rating==null &&  comment ==null ){
+        throw new ApiError(400 , "Nothing to update")
+    };
+
+    if(rating!=null){
+        if(rating<0 || rating >5){
+            throw new ApiError(400, "rating should be in range 0-5")
+        }
+    };
+
+     if(comment!=null){
+        if(comment.trim().length===0){
+            throw new ApiError(400, "comment is empty")
+        }
+    };
+
+
+
+
+
+    let review = await Review.findById(reviewId);
+    if(!review){
+        throw new ApiError(404, "Review not found")
+    };
+
+
+    if(review.user.toString()!=req.user._id.toString()){
+         throw new ApiError(403, "You can update only your own review!")
+    };
+
+    if(rating!=null){ review.rating = rating;};
+    if(comment){ review.comment = comment;};
+
+    await review.save();
+
+    return res.status(200).json({
+        success :true,
+        message :"Review updated succesfully",
+        review,
+    });
+    
+});
+
+
+const deleteProductReview= asynchandler(async(req,res)=>{
+    let {id} = req.params;
+    const review = await Review.findById(id);
+    
+    if(!review){
+        throw new ApiError(404, "Review not found")
+    };
+
+    if(review.user.toString() != req.user._id.toString() && req.user.role != "admin"){
+        throw new ApiError(403, "You can only delete your own Reviews")
+    };
+
+    await Review.findByIdAndDelete(id);
+     return res.status(200).json({
+        success : true,
+        message : "Review deleted successfully",
+     })
+
+
 })
 
-export {createProductReview ,getProductReviews};
+export {createProductReview ,getProductReviews ,updateProductReview , deleteProductReview};
