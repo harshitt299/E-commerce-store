@@ -5,7 +5,22 @@ import Product from "../models/product.model.js";
 
 
 
+const updateProductRating = async(productId)=>{
+    const reviews = await Review.find({product : productId});
 
+    const count = reviews.length;
+
+    let average =0 ;
+    if(count>0){
+        const sum = reviews.reduce((total,r)=>total+r.rating ,0);
+        average = Math.round((sum/count)*10)/10;
+    }
+    await Product.findByIdAndUpdate(productId ,
+        {
+            ratings : {average ,count},
+        },
+    );
+};
 
 const createProductReview = asynchandler(async(req,res)=>{
     let {productId} = req.params;
@@ -36,6 +51,8 @@ const createProductReview = asynchandler(async(req,res)=>{
             rating,
             comment,
         });
+
+        await updateProductRating(productId);
 
 
         return res.status(201).json({
@@ -98,9 +115,6 @@ const updateProductReview = asynchandler(async(req,res)=>{
     };
 
 
-
-
-
     let review = await Review.findById(reviewId);
     if(!review){
         throw new ApiError(404, "Review not found")
@@ -115,6 +129,7 @@ const updateProductReview = asynchandler(async(req,res)=>{
     if(comment){ review.comment = comment;};
 
     await review.save();
+    await updateProductRating(review.product)
 
     return res.status(200).json({
         success :true,
@@ -138,10 +153,13 @@ const deleteProductReview= asynchandler(async(req,res)=>{
     };
 
     await Review.findByIdAndDelete(reviewId);
+     await updateProductRating(review.product);
      return res.status(200).json({
         success : true,
         message : "Review deleted successfully",
-     })
+     });
+
+    
 
 
 })
