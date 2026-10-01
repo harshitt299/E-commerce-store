@@ -151,6 +151,143 @@ const verifyPayment = asynchandler(async(req,res)=>{
 
 });
 
+const paymentWebhook = asynchandler(async (req, res) => {
+    const webhookSignature = req.headers["x-razorpay-signature"];
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+    // Verify signature
+    const expectedSignature = crypto
+        .createHmac("sha256", webhookSecret)
+        .update(JSON.stringify(req.body))
+        .digest("hex");
+
+    if (expectedSignature !== webhookSignature) {
+        return res.status(400).json({
+             success: false,
+              message: "Invalid webhook signature"
+             });
+    }
+
+    const event = req.body;
+    console.log("Webhook received:", event.event, event.payload?.payment?.entity?.id);
+
+    try {
+        switch (event.event) {
+            case "payment.captured": {
+                const payment = event.payload.payment.entity;
+                const orderId = payment.notes?.order_id || payment.order_id;
+                
+                if (!orderId) {
+                    console.warn("No order_id in payment notes", payment.id);
+                    break;
+                }
+
+                const order = await Order.findById(orderId);
+                if (!order) {
+                    console.warn("Order not found for webhook", orderId);
+                    break;
+                }
+
+                // Idempotency: skip if already paid
+                if (order.isPaid) {
+                    console.log("Order already paid, skipping", orderId);
+                    break;
+                }
+
+                // Verify amount matches (in paise)
+                if (payment.amount !== Math.round(order.totalAmount * 100)) {
+                    console.error("Amount mismatch", { expected: order.totalAmount * 100, received: payment.amount });
+                    break;
+                }
+
+                // Update order
+                order.isPaid = true;
+                order.paidAt = new Date();
+                order.paymentResult = {
+                    razorpay_payment_id: payment.id,
+                    razorpay_order_id: payment.order_id,
+                    razorpay_signature: webhookSignature,
+                    status: "Paid",
+                };
+                await order.save();
+
+                // Decrement stock
+                for (const item of order.orderItems) {
+                    await Product.findByIdAndUpdate(item.product, {
+                        $inc: { stock: -item.quantity }
+                    });
+                }
+
+                // Clear cart
+                await Cart.findOneAndDelete({ user: order.user });
+                console.log("Order completed via webhook", orderId);
+                break;
+            }
+
+            case "payment.failed": {
+                const payment = event.payload.payment.entity;
+                const orderId = payment.notes?.order_id || payment.order_id;
+                
+                if (orderId) {
+                    const order = await Order.findById(orderId);
+                    if (order && !order.isPaid) {
+                        order.paymentResult = {
+                            ...order.paymentResult,
+                            status: "Failed",
+                            razorpay_payment_id: payment.id,
+                        };
+                        await order.save();
+                        console.log("Payment failed for order", orderId);
+                    }
+                }
+                break;
+            }
+
+            case "refund.created":
+            case "refund.processed": {
+                const refund = event.payload.refund.entity;
+                const paymentId = refund.payment_id;
+                
+                // Find order by payment_id
+                const order = await Order.findOne({
+                    "paymentResult.razorpay_payment_id": paymentId
+                });
+                
+                if (order) {
+                    order.paymentResult = {
+                        ...order.paymentResult,
+                        status: refund.status === "processed" ? "Refunded" : "Refund Initiated",
+                        refund_id: refund.id,
+                        refund_amount: refund.amount / 100,
+                    };
+                    await order.save();
+                    
+                    // Restore stock on refund
+                    if (refund.status === "processed") {
+                        for (const item of order.orderItems) {
+                            await Product.findByIdAndUpdate(item.product, {
+                                $inc: { stock: item.quantity }
+                            });
+                        }
+                    }
+                    console.log("Refund processed for order", order._id);
+                }
+                break;
+            }
+
+            default:
+                console.log("Unhandled webhook event:", event.event);
+        }
+
+        // Always return 200 to acknowledge receipt
+        res.status(200).json({ success: true });
+    } catch (error) {
+        console.error("Webhook processing error:", error);
+        // Still return 200 to prevent Razorpay retries for processing errors
+        // Log for manual investigation
+        res.status(200).json({ success: true, message: "Received but processing failed" });
+    }
+});
 
 // Get My orders
 
@@ -342,5 +479,6 @@ export {createOrder ,
     getAllOrders ,
     updateOrderStatus,
     cancelOrder,
+    paymentWebhook,
 };
 
