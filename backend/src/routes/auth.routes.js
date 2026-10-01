@@ -1,5 +1,5 @@
 import express from "express";
-import  {registerUser,loginUser,logoutUser} from "../controllers/auth.controller.js";
+import  {registerUser,loginUser,logoutUser, forgotPassword, resetPassword} from "../controllers/auth.controller.js";
 import {protect} from "../middleware/authMiddleware.js"
 
  const router = express.Router();
@@ -8,6 +8,8 @@ import {protect} from "../middleware/authMiddleware.js"
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/logout", logoutUser);
+router.post("/forgot-password" , forgotPassword);
+router.post("/reset-password/:token" , resetPassword);
 
 
 // protected routes

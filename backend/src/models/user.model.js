@@ -23,6 +23,7 @@ const userSchema = new mongoose.Schema({
         enum : ["customer" ,"admin"],
         default: "customer",
     },
+    
     address:[{
         street : String,
         city: String,
@@ -33,7 +34,15 @@ const userSchema = new mongoose.Schema({
             type: Boolean,
             default :false,
         }
-    }]
+    }],
+
+    resetPasswordToken : {
+        type : String
+    },
+     resetPasswordExpires : {
+        type : Date
+    },
+
 },{timestamps:true});
 
  const User = mongoose.model("User",userSchema);

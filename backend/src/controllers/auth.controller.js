@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import ApiError from "../utils/ApiError.js";
 import asynchandler from "../utils/asynchandler.js";
+import crypto from "crypto";
+import { sendEmail } from "../utils/sendEmail.js";
 
 // helper function to generate jwt token
 const generateToken = (userId,role)=>{
@@ -121,4 +123,98 @@ const logoutUser = (req,res)=>{
     res.status(200).json({success:true, message: "Logout succcessfully!"});
 };
 
-export {registerUser,loginUser,logoutUser};
+const forgotPassword = asynchandler (async(req,res)=>{
+    let {email} = req.body;
+
+
+    if(!email) {
+        throw new ApiError(400, "email required")
+    };
+    const user = await User.findOne({email});
+
+    if(!user){
+        throw new ApiError(404 , "user does not exist")
+    };
+
+    const rawToken  = crypto.randomBytes(32).toString("hex");
+    const hashed  = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+    user.resetPasswordToken = hashed ;
+    user.resetPasswordExpires = Date.now() + 10*60*1000;
+    await user.save({validateBeforeSave : false});
+
+
+    const resetURL = `${process.env.CLIENT_URL}/reset-password/${rawToken}`;
+
+    await sendEmail({
+        to : user.email,
+        subject : "Reset your password",
+        html :  `
+                <h2>Password Reset</h2>
+
+                <p>Hello ${user.name},</p>
+
+                <p>
+                    You requested to reset your password.
+                </p>
+
+                <p>
+                    Click the button below:
+                </p>
+
+                <a href="${resetURL}">
+                    Reset Password
+                </a>
+
+                <p>
+                    This link will expire in 10 minutes.
+                </p>
+
+                <p>
+                    If you did not request this,
+                    please ignore this email.
+                </p>
+            `
+    });
+
+    return res.status(200).json({
+        success : true,
+        message : "Password reset link set successfully to your email"
+    });
+
+});
+
+
+
+ const resetPassword = asynchandler (async (req,res)=>{
+        const {token} =req.params;
+        const {newPassword} = req.body;
+
+        const hashed = crypto.createHash("sha256").update(token).digest("hex");
+
+        const user= await User.findOne({
+            resetPasswordToken : hashed,
+            resetPasswordExpires : { $gt : Date.now() },
+        }) ;
+
+        if(!user){
+            throw new ApiError(404 , "Invalid or expired reset Token")
+        };
+
+
+        const hashPassword = await bcrypt.hash(newPassword , 10);
+
+        user.password = hashPassword;
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined ;
+
+        await user.save();
+
+        return res.status(200).json({
+            success : true,
+            message : "Password reset successfully"
+        });
+         
+    });
+
+export {registerUser,loginUser,logoutUser , forgotPassword , resetPassword};
