@@ -133,7 +133,10 @@ const forgotPassword = asynchandler (async(req,res)=>{
     const user = await User.findOne({email});
 
     if(!user){
-        throw new ApiError(404 , "user does not exist")
+       return res.status(200).json({
+        success : true,
+        message : "If this email exists, a password reset link has been sent"
+       });
     };
 
     const rawToken  = crypto.randomBytes(32).toString("hex");
@@ -145,8 +148,8 @@ const forgotPassword = asynchandler (async(req,res)=>{
 
 
     const resetURL = `${process.env.CLIENT_URL}/reset-password/${rawToken}`;
-
-    await sendEmail({
+   try {
+      await sendEmail({
         to : user.email,
         subject : "Reset your password",
         html :  `
@@ -176,6 +179,15 @@ const forgotPassword = asynchandler (async(req,res)=>{
                 </p>
             `
     });
+    
+   } catch (error) {
+     user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+        await user.save({validateBeforeSave : false});
+        throw new ApiError(500, "Failed to send reset email, try again later");
+    };
+
+  
 
     return res.status(200).json({
         success : true,
