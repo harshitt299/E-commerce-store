@@ -15,7 +15,7 @@ router.get("/myorder/:id" , getMyOrderById);
 router.get("/allorders" , isAdmin , getAllOrders);
 router.patch("/allorders/:id/status" , isAdmin , updateOrderStatus);
 router.patch("/myorder/:id/cancel" ,cancelOrder);
-router.post("/webhook" ,paymentWebhook);
+router.post("/webhook", protect,paymentWebhook);
 
 export default router;
 

@@ -17,7 +17,7 @@ const logoutUser = async (userData)=>{
 }
 
 const getCurrentUser = async (userData)=>{
-    const response = await api.post("/users/me" , userData  );
+    const response = await api.get("/users/me" , userData  );
     return response.data;
 };
 

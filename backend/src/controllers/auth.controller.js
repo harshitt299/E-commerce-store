@@ -67,7 +67,7 @@ const generateToken = (userId,role)=>{
 
 
     const getCurrentUser = asynchandler(async(req,res)=>{
-        const user = await User.findById(req.user._id).select(-"password");
+        const user = await User.findById(req.user._id).select("-password");
         if(!user){
             throw new ApiError(404, "user not found")
         };

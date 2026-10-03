@@ -34,9 +34,9 @@ function AuthProvider ({children}){
 
     // Register
 
-    const register = async()=>{
+    const register = async(userData)=>{
         try {
-            const response = await registerUser();
+            const response = await registerUser(userData);
             setUser(response.user);
             return response;
         } catch (error) {
@@ -45,9 +45,9 @@ function AuthProvider ({children}){
     }
 
     // login
-    const login = async ()=>{
+    const login = async (userData)=>{
         try {
-            const response =  await loginUser();
+            const response =  await loginUser(userData);
             setUser(response.user)
             return response;
         } catch (error) {
