@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAuth } from "../hooks/useauth";
+import { useAuth } from "../hooks/useAuth";
 import {Link , useNavigate } from "react-router-dom";
 
 function Register() {
@@ -11,8 +11,8 @@ function Register() {
    
   });
 
-  const  {Register} = useAuth();
-  const {navigate} = useNavigate();
+  const  {register} = useAuth();
+  const navigate = useNavigate();
 
 
   const handlechange = (e)=>{
@@ -28,7 +28,7 @@ function Register() {
     e.preventDefault();
 
     try {
-      const response = await Register(formData);
+      const response = await register(formData);
       console.log(response);
       navigate("/");
     } catch (error) {
@@ -43,7 +43,18 @@ function Register() {
     <input type="email" name="email" placeholder="Enter your email" value={formData.email} onChange={handlechange} />
     <input type="password" name="password" placeholder="Enter your password" value={formData.password} onChange={handlechange} />
 
+    <button type="submit">
+                    Register
+                </button>
+
       </form>
+      <p>
+         Already have an account?
+
+           <Link to="/login">
+                    Login
+            </Link>
+      </p>
     </div>
   )
 }

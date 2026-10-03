@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAuth } from "../hooks/useauth";
+import { useAuth } from "../hooks/useAuth";
 import {Link , useNavigate } from "react-router-dom";
 function Login () {
 
@@ -8,7 +8,7 @@ function Login () {
     password : ""
   });
 
-  const {Login} = useAuth();
+  const {login} = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e)=>{
@@ -24,7 +24,7 @@ function Login () {
     e.preventDefault();
 
     try {
-      const response = await Login(formData);
+      const response = await login(formData);
       console.log(response);
       navigate("/");
     } catch (error) {
