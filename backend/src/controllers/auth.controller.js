@@ -243,4 +243,4 @@ const forgotPassword = asynchandler (async(req,res)=>{
          
     });
 
-export {registerUser,loginUser,logoutUser , forgotPassword , resetPassword};
+export {registerUser,getCurrentUser,loginUser,logoutUser , forgotPassword , resetPassword};
