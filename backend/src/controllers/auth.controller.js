@@ -66,6 +66,20 @@ const generateToken = (userId,role)=>{
     });
 
 
+    const getCurrentUser = asynchandler(async(req,res)=>{
+        const user = await User.findById(req.user._id).select(-"password");
+        if(!user){
+            throw new ApiError(404, "user not found")
+        };
+
+        return res.status(200).json({
+            success : true,
+            message : "user fetched succesfuuly",
+            user,
+        })
+    });
+
+
 
     // login User
 const loginUser = asynchandler(async (req,res)=>{
