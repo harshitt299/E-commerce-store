@@ -2,6 +2,7 @@ import  Product  from "../models/product.model.js";
 import asynchandler from "../utils/asynchandler.js";
 import ApiError from "../utils/ApiError.js";
 import uploadOnCloudinary from "../utils/cloudinary.js";
+import { delCacheByPattern, getOrSetCache } from "../utils/cache.js";
 
 // create product
 const createProduct = asynchandler(async (req,res)=>{
@@ -29,6 +30,8 @@ const createProduct = asynchandler(async (req,res)=>{
         images  : imageUrls
     });
 
+    await delCacheByPattern("product:list:*");
+
     res.status(201).json({
         success : true,
         message: "Product created successfully!",
@@ -42,18 +45,22 @@ const createProduct = asynchandler(async (req,res)=>{
 
 const getAllProduct = asynchandler(async(req,res)=>{
     let {search ,category , minPrice ,maxPrice,page = 1, limit = 10} = req.query;
+    
 
-    let filterQuery = {};
+    const cacheKey = `product:list:search=${search || ""}: cat=${category || ""}: page =${page}:limit=${limit}`;
+    const {data ,fromCache} = await getOrSetCache(cacheKey,60,
+        async()=>{
+              let filterQuery = {};
 
-    if(search){
-        filterQuery.$or = [
-            {name : {$regex : search , $options : "i"}},
-            {description : { $regex : search , $options : "i"}}
-        ];
-    };
+         if(search){
+             filterQuery.$or = [
+                 {name : {$regex : search , $options : "i"}},
+                {description : { $regex : search , $options : "i"}}
+            ];
+        };
 
 
-    if(category) {
+        if(category) {
         filterQuery.category = category;
     }
     
@@ -76,13 +83,20 @@ const getAllProduct = asynchandler(async(req,res)=>{
 
     let totalProduct = await Product.countDocuments(filterQuery);
 
-
-    res.status(200).json({
-        success : true,
-        totalProduct ,
+    return {
+         totalProduct ,
          currentPage : Number(page),
          totalPages : Math.ceil(totalProduct / Number(limit)),
          products ,
+    }
+    });
+
+
+    res.status(200).json({
+        success : true,
+        fromCache,
+        ...data,
+       
     });
 
     
@@ -93,15 +107,22 @@ const getAllProduct = asynchandler(async(req,res)=>{
 
 const getProductById = asynchandler(async(req,res)=>{
     let {id} =  req.params;
-    let product = await Product.findById(id);
+    const {data:product, fromCache} = getOrSetCache(`product:${id}`,300,
+     async()=>{
+          let product = await Product.findById(id);
     
-    if(!product){
-        throw new ApiError(404, "Product not found");
-    };
+         if(!product){
+           throw new ApiError(404, "Product not found");
+        };
+        return {
+            fromCache,
+            data:product,
+        }
+  
+    })
 
     res.status(200).json({
         success : true,
-        product ,
     });
 });
 
@@ -110,6 +131,8 @@ const getProductById = asynchandler(async(req,res)=>{
 
 const updateProduct = asynchandler (async(req,res)=>{
     let {id} = req.params;
+
+    const {} =set
 
 
     let  product  = await Product.findById(id);
