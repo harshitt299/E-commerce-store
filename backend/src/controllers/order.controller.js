@@ -6,6 +6,17 @@ import Cart from "../models/cart.model.js";
 import Order from "../models/order.model.js";
 import { razorpayInstance } from "../config/razorpay.js";
 import crypto from "crypto";
+import { delCache, delCacheByPattern } from "../utils/cache.js";
+
+// Stock ghata/badha = product cache purana; cart delete = cart cache purana
+const invalidateAfterStockChange = async (items, userId) => {
+    for (const item of items) {
+        const pid = item.product?._id || item.product;
+        await delCache(`product:${pid}`);
+    }
+    await delCacheByPattern("products:list:*");
+    if (userId) await delCache(`cart:user:${userId}`);
+};
 
 
 
@@ -55,6 +66,7 @@ const createOrder = asynchandler(async(req,res)=>{
         });
     }
     await  Cart.findOneAndDelete({user :userId});
+    await invalidateAfterStockChange(cart.items, userId);
 
     return res.status(201).json({
       success: true,
@@ -142,6 +154,7 @@ const verifyPayment = asynchandler(async(req,res)=>{
     }
 
     await Cart.findOneAndDelete({user: req.user._id});
+    await invalidateAfterStockChange(order.orderItems, req.user._id);
 
     res.status(201).json({
         success:true,
@@ -419,6 +432,7 @@ const updateOrderStatus =asynchandler(async(req,res)=>{
                 $inc : {stock : item.quantity}
             });
         }
+        await invalidateAfterStockChange(order.orderItems);
     }
     order.orderStatus = status;
     await order.save();
@@ -461,6 +475,7 @@ const cancelOrder = asynchandler(async(req,res)=>{
             $inc :{stock : item.quantity}
         });
     }
+    await invalidateAfterStockChange(order.orderItems);
     order.orderStatus = "Cancelled";
     await order.save();
 

@@ -9,6 +9,7 @@ import errorhandler from "./middleware/errorMiddleware.js";
 import cartRouter from "./routes/cart.routes.js";
 import orderRouter from "./routes/order.routes.js";
 import reviewRouter from "./routes/review.routes.js";
+import { connectRedis } from "./config/redis.js";
 
 dotenv.config();
 
@@ -19,10 +20,11 @@ dotenv.config();
 
 const app = express();
 app.use(cors({
-  origin: "http://localhost:5173", // apna frontend URL dalo
+  origin: process.env.CLIENT_URL || "http://localhost:5173" ,
   credentials: true,
 }));
 app.use(express.urlencoded({ extended: true }));
+app.use("/api/v1/orders/webhook", express.raw({type:"application/jscon"}))
 app.use(express.json());
 app.use(cookieParser());
 
@@ -46,6 +48,8 @@ app.get("/" , (req,res)=>{
 
 
 app.use(errorhandler);
+// Pehle Redis + Mongo dono connect, phir server suno
+await connectRedis();
 connectDB();
   
 const Port = process.env.PORT || 3000

@@ -5,6 +5,7 @@ import ApiError from "../utils/ApiError.js";
 import asynchandler from "../utils/asynchandler.js";
 import crypto from "crypto";
 import { sendEmail } from "../utils/sendEmail.js";
+import { redisClient } from "../config/redis.js";
 
 // helper function to generate jwt token
 const generateToken = (userId,role)=>{
@@ -128,7 +129,20 @@ const loginUser = asynchandler(async (req,res)=>{
 
 
     // logout user 
-const logoutUser = (req,res)=>{
+const logoutUser = async (req,res)=>{
+    // JWT ko server pe expire nahi kar sakte, isliye Redis blacklist me dal do (7 din = token expiry)
+    try {
+        const token = req.cookies?.token;
+        if (token && redisClient?.isOpen) {
+            const decoded = jwt.decode(token);
+            const expInSec = decoded?.exp ? decoded.exp - Math.floor(Date.now() / 1000) : 7*24*60*60;
+            if (expInSec > 0) {
+                await redisClient.setEx(`blacklist:${token}`, expInSec, "1");
+            }
+        }
+    } catch (err) {
+        console.log("Blacklist set failed:", err.message);
+    }
     // for logout clear all cokkies immediately
     res.cookie("token" , "",{
         httpOnly :true,
@@ -152,6 +166,18 @@ const forgotPassword = asynchandler (async(req,res)=>{
         message : "If this email exists, a password reset link has been sent"
        });
     };
+
+    // Same email pe 2 min me dobara mail mat bhejo (Redis cooldown — DB bachata hai + spam rokta hai)
+    try {
+        if (redisClient?.isOpen) {
+            const cooldown = await redisClient.get(`forgot:${email}`);
+            if (cooldown) {
+                return res.status(429).json({ success: false, message: "Reset link already sent, 2 min baad try karo" });
+            }
+        }
+    } catch (err) {
+        console.log("Cooldown check failed:", err.message);
+    }
 
     const rawToken  = crypto.randomBytes(32).toString("hex");
     const hashed  = crypto.createHash("sha256").update(rawToken).digest("hex");
@@ -202,6 +228,15 @@ const forgotPassword = asynchandler (async(req,res)=>{
     };
 
   
+
+    // Cooldown set karo taaki user turant dobara request na maar sake (return se PEHLE!)
+    try {
+        if (redisClient?.isOpen) {
+            await redisClient.setEx(`forgot:${email}`, 120, "1");
+        }
+    } catch (err) {
+        console.log("Cooldown set failed:", err.message);
+    }
 
     return res.status(200).json({
         success : true,
