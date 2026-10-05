@@ -115,7 +115,8 @@ const getProductById = asynchandler(async(req,res)=>{
             await delCache(`product:${id}`);
            throw new ApiError(404, "Product not found");
         };
-        
+        return product;
+     });
 
     res.status(200).json({
         success : true,
