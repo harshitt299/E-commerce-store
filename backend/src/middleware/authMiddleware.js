@@ -1,26 +1,12 @@
 import jwt from "jsonwebtoken";
-import { redisClient } from "../config/redis.js";
-
+   
 
 //  Protected Route Middleware (Only Logged In Users)
-   const protect = async (req,res,next)=>{
+   const protect = (req,res,next)=>{
   try {
      const token = req.cookies.token;
     if (!token) {
       return  res.status(401).json({success:false, message: "Not authorised , please login first"});
-    }
-
-    // Logout wala token Redis blacklist me hai kya? (JWT khud expire nahi hota isliye check zaroori)
-    try {
-      if (redisClient?.isOpen) {
-        const blacklisted = await redisClient.get(`blacklist:${token}`);
-        if (blacklisted) {
-          return res.status(401).json({success:false, message: "Session expired, please login again"});
-        }
-      }
-    } catch (err) {
-      console.log("Blacklist check failed:", err.message);
-      // Redis down = request mat roko, aage badho
     }
 
     const decoded = jwt.verify(token,process.env.JWT_SECRET);

@@ -2,7 +2,6 @@ import asynchandler from "../utils/asynchandler.js";
 import Review from "../models/reviews.model.js";
 import ApiError from "../utils/ApiError.js";
 import Product from "../models/product.model.js";
-import { getOrSetCache, delCache, delCacheByPattern } from "../utils/cache.js";
 
 
 
@@ -21,10 +20,6 @@ const updateProductRating = async(productId)=>{
             ratings : {average ,count},
         },
     );
-
-    // Rating product ke andar save hai = product + review dono cache stale
-    await delCache(`product:${productId}`);
-    await delCacheByPattern(`reviews:product:${productId}:*`);
 };
 
 const createProductReview = asynchandler(async(req,res)=>{
@@ -77,34 +72,25 @@ const getProductReviews = asynchandler(async(req,res)=>{
     if(!product){
         throw new ApiError(404, "product not found");
     };
+    let skip = (Number(page)-1)*Number(limit);
 
-    // Reviews list 60 sec cache — har page ka alag key
-    const cacheKey = `reviews:product:${productId}:page:${page}:limit:${limit}`;
-    const { data, fromCache } = await getOrSetCache(cacheKey, 60, async () => {
-        let skip = (Number(page)-1)*Number(limit);
 
-        const reviews = await Review
-        .find({product : productId})
-        .populate("user" , "name")
-        .skip(skip)
-        .limit(Number(limit))
-        .sort({createdAt :-1});
+    const reviews=await Review
+    .find({product : productId})
+    .populate("user" , "name")
+    .skip(skip)
+    .limit(Number(limit))
+    .sort({createdAt :-1});
 
-        const totalReviews = await Review.countDocuments({product : productId});
+    const totalReviews = await Review.countDocuments({product : productId});
 
-        return {
-            currentPage: Number(page),
-            totalPages: Math.ceil(totalReviews/Number(limit)),
-            totalReviews,
-            reviews,
-        };
-    });
 
     return res.status(200).json({
         success : true,
         message : "reviews fetched successfully",
-        fromCache,
-        ...data,
+        currentPage : Number(page),
+        totalPages : Math.ceil(totalReviews/Number(limit)),
+        reviews,
     });
 });
 

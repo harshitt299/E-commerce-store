@@ -2,7 +2,6 @@ import  Product  from "../models/product.model.js";
 import asynchandler from "../utils/asynchandler.js";
 import ApiError from "../utils/ApiError.js";
 import uploadOnCloudinary from "../utils/cloudinary.js";
-import { getOrSetCache, delCache, delCacheByPattern } from "../utils/cache.js";
 
 // create product
 const createProduct = asynchandler(async (req,res)=>{
@@ -36,9 +35,6 @@ const createProduct = asynchandler(async (req,res)=>{
         product
     })
 
-    // Naya product aaya = saari list pages purani ho gayi, uda do
-    await delCacheByPattern("products:list:*");
-
 });
 
 
@@ -47,55 +43,46 @@ const createProduct = asynchandler(async (req,res)=>{
 const getAllProduct = asynchandler(async(req,res)=>{
     let {search ,category , minPrice ,maxPrice,page = 1, limit = 10} = req.query;
 
-    // Har alag filter/page = alag cache key, warna page-1 ka data page-2 pe dikhega
-    const cacheKey = `products:list:search=${search||""}:cat=${category||""}:min=${minPrice||""}:max=${maxPrice||""}:page=${page}:limit=${limit}`;
+    let filterQuery = {};
 
-    const { data, fromCache } = await getOrSetCache(cacheKey, 60, async () => {
-        let filterQuery = {};
-
-        if(search){
-            filterQuery.$or = [
-                {name : {$regex : search , $options : "i"}},
-                {description : { $regex : search , $options : "i"}}
-            ];
-        };
+    if(search){
+        filterQuery.$or = [
+            {name : {$regex : search , $options : "i"}},
+            {description : { $regex : search , $options : "i"}}
+        ];
+    };
 
 
-        if(category) {
-            filterQuery.category = category;
-        }
-        
-        if(minPrice || maxPrice){
-            filterQuery.price = {};
-            if(minPrice)filterQuery.price.$gte = Number(minPrice);
-            if(maxPrice)filterQuery.price.$lte = Number(maxPrice);
-        }
+    if(category) {
+        filterQuery.category = category;
+    }
+    
+    if(minPrice || maxPrice){
+        filterQuery.price = {};
+        if(minPrice)filterQuery.price.$gte = Number(minPrice);
+        if(maxPrice)filterQuery.price.$lte = Number(maxPrice);
+    }
 
 
-        let skip = (Number(page)-1)*Number(limit);
+    let skip = (Number(page)-1)*Number(limit);
 
 
 
-        let products  =  await Product
-        .find(filterQuery)
-        .skip(skip)
-        .limit(Number(limit))
-        .sort({createdAt : -1});
+    let products  =  await Product
+    .find(filterQuery)
+    .skip(skip)
+    .limit(Number(limit))
+    .sort({createdAt : -1});
 
-        let totalProduct = await Product.countDocuments(filterQuery);
+    let totalProduct = await Product.countDocuments(filterQuery);
 
-        return {
-            totalProduct,
-            currentPage: Number(page),
-            totalPages: Math.ceil(totalProduct / Number(limit)),
-            products,
-        };
-    });
 
     res.status(200).json({
         success : true,
-        fromCache, // frontend/debug ke liye: true = Redis se aaya
-        ...data,
+        totalProduct ,
+         currentPage : Number(page),
+         totalPages : Math.ceil(totalProduct / Number(limit)),
+         products ,
     });
 
     
@@ -106,21 +93,14 @@ const getAllProduct = asynchandler(async(req,res)=>{
 
 const getProductById = asynchandler(async(req,res)=>{
     let {id} =  req.params;
-
-    // Single product 5 min tak cache — detail page sabse zyada hit hota hai
-    const { data: product, fromCache } = await getOrSetCache(`product:${id}`, 300, async () => {
-        return await Product.findById(id).lean();
-    });
+    let product = await Product.findById(id);
     
     if(!product){
-        // Galat id cache me na rahe, turant hatao
-        await delCache(`product:${id}`);
         throw new ApiError(404, "Product not found");
     };
 
     res.status(200).json({
         success : true,
-        fromCache,
         product ,
     });
 });
@@ -168,11 +148,6 @@ const updateProduct = asynchandler (async(req,res)=>{
 
 
 
-     // Data badal gaya = purana cache galat, dono jagah se hatao
-     await delCache(`product:${id}`);
-     await delCacheByPattern("products:list:*");
-
-
      res.status(200).json({
         success: true,
         message : "product updated duccessfully",
@@ -196,10 +171,6 @@ const deleteProduct = asynchandler (async(req,res)=>{
      }
 
      await Product.findByIdAndDelete(id);
-
-     // Delete ke baad cache me dead product na dikhe
-     await delCache(`product:${id}`);
-     await delCacheByPattern("products:list:*");
 
 
       res.status(200).json({

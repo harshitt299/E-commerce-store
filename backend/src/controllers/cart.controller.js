@@ -3,12 +3,6 @@ import asynchandler from "../utils/asynchandler.js";
 import ApiError from "../utils/ApiError.js";
 import uploadOnCloudinary from "../utils/cloudinary.js";
 import Cart from "../models/cart.model.js";
-import { getOrSetCache, delCache } from "../utils/cache.js";
-
-// Cart badalne ke baad us user ka cache uda do (warna purana total dikhega)
-const invalidateCartCache = async (userId) => {
-    await delCache(`cart:user:${userId}`);
-};
 
 
 
@@ -54,7 +48,6 @@ const addToCart = asynchandler(async(req,res)=>{
             });
         };
         await cart.save();
-      await invalidateCartCache(userId);
 
       return   res.status(200).json({
             success : true,
@@ -68,18 +61,20 @@ const addToCart = asynchandler(async(req,res)=>{
 // get user cart 
 
 const getCart = asynchandler(async(req,res)=>{
-    // User ka cart 30 sec cache — bar-bar same user same cart mangta hai
-    const { data: cart, fromCache } = await getOrSetCache(`cart:user:${req.user._id}`, 30, async () => {
-        const cart = await Cart.findOne({user : req.user._id}).populate(
-            "items.product",
-            "name price category images stock"
-        ).lean();
-        return cart || { items : [] , totalCartPrice : 0 };
-    });
+    const cart  = await Cart.findOne({user : req.user._id}).populate(
+        "items.product", 
+        "name price category images stock"
+    );
+
+    if(!cart){
+        return res.status(200).json({
+            success : true,
+            cart : { items : [] ,totalCartPrice : 0 }
+        });
+    };
 
      return res.status(200).json({
             success : true,
-            fromCache,
             cart,
      });
 
@@ -112,7 +107,6 @@ const updateCartQuantity = asynchandler(async(req,res)=>{
     item.quantity = Number(quantity);
 
     await cart.save();
-    await invalidateCartCache(req.user._id);
     res.status(200).json({
         success : true,
         message: "Cart updated successfully!",
@@ -133,7 +127,6 @@ const removeFromCart = asynchandler(async(req,res)=>{
 
    cart.items = cart.items.filter((item) =>item.product.toString()!=productId);
    await cart.save();
-   await invalidateCartCache(req.user._id);
 
 
    res.status(200).json({
