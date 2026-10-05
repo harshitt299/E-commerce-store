@@ -2,7 +2,7 @@ import  Product  from "../models/product.model.js";
 import asynchandler from "../utils/asynchandler.js";
 import ApiError from "../utils/ApiError.js";
 import uploadOnCloudinary from "../utils/cloudinary.js";
-import { delCacheByPattern, getOrSetCache } from "../utils/cache.js";
+import { delCache, delCacheByPattern, getOrSetCache } from "../utils/cache.js";
 
 // create product
 const createProduct = asynchandler(async (req,res)=>{
@@ -112,6 +112,7 @@ const getProductById = asynchandler(async(req,res)=>{
           let product = await Product.findById(id);
     
          if(!product){
+            await delCache(`product:${id}`);
            throw new ApiError(404, "Product not found");
         };
         return {
@@ -131,8 +132,6 @@ const getProductById = asynchandler(async(req,res)=>{
 
 const updateProduct = asynchandler (async(req,res)=>{
     let {id} = req.params;
-
-    const {} =set
 
 
     let  product  = await Product.findById(id);
@@ -168,7 +167,8 @@ const updateProduct = asynchandler (async(req,res)=>{
         new : true,
         runValidators : true,
      });
-
+     await delCache(`product:${id}`);
+     await delCacheByPattern(`product:list:*`);
 
 
      res.status(200).json({
@@ -194,7 +194,8 @@ const deleteProduct = asynchandler (async(req,res)=>{
      }
 
      await Product.findByIdAndDelete(id);
-
+     await delCache(`product:${id}`);
+     await delCacheByPattern("product:list:*")
 
       res.status(200).json({
         success: true,
