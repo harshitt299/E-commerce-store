@@ -53,9 +53,9 @@ const delCache = async(key)=>{
 
 const delCacheByPattern = async(pattern)=>{
     try {
-        if(!isRedisUp) return;
+        if(!isRedisUp()) return;
 
-        const keys = redisClient.keys(pattern);
+        const keys = await redisClient.keys(pattern);
         if(keys.length>0){
             await redisClient.del(keys);
         }

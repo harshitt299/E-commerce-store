@@ -9,7 +9,7 @@ import errorhandler from "./middleware/errorMiddleware.js";
 import cartRouter from "./routes/cart.routes.js";
 import orderRouter from "./routes/order.routes.js";
 import reviewRouter from "./routes/review.routes.js";
-
+import { connectRedis } from "./config/redis.js";
 dotenv.config();
 
 
@@ -48,6 +48,7 @@ app.get("/" , (req,res)=>{
 
 app.use(errorhandler);
 connectDB();
+connectRedis();
   
 const Port = process.env.PORT || 3000
 

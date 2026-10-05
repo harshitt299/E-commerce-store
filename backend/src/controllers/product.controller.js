@@ -47,7 +47,7 @@ const getAllProduct = asynchandler(async(req,res)=>{
     let {search ,category , minPrice ,maxPrice,page = 1, limit = 10} = req.query;
     
 
-    const cacheKey = `product:list:search=${search || ""}: cat=${category || ""}: page =${page}:limit=${limit}`;
+    const cacheKey = `product:list:search=${search || ""}: cat=${category || ""}:min=${minPrice || ""}:max=${maxPrice || ""}: page =${page}:limit=${limit}`;
     const {data ,fromCache} = await getOrSetCache(cacheKey,60,
         async()=>{
               let filterQuery = {};
@@ -107,7 +107,7 @@ const getAllProduct = asynchandler(async(req,res)=>{
 
 const getProductById = asynchandler(async(req,res)=>{
     let {id} =  req.params;
-    const {data:product, fromCache} = getOrSetCache(`product:${id}`,300,
+    const {data:product, fromCache} = await getOrSetCache(`product:${id}`,300,
      async()=>{
           let product = await Product.findById(id);
     
@@ -115,15 +115,12 @@ const getProductById = asynchandler(async(req,res)=>{
             await delCache(`product:${id}`);
            throw new ApiError(404, "Product not found");
         };
-        return {
-            fromCache,
-            data:product,
-        }
-  
-    })
+        
 
     res.status(200).json({
         success : true,
+        product,
+        fromCache,
     });
 });
 
