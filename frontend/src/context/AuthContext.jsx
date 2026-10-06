@@ -6,7 +6,7 @@ import {
     logoutUser,
     getCurrentUser
 } from "../services/authService";
-import axios from "axios";
+
 
 
 const Authcontext = createContext();
@@ -41,6 +41,7 @@ function AuthProvider ({children}){
             return response;
         } catch (error) {
             setUser(null);
+            throw error;
         }
     }
 
@@ -52,6 +53,7 @@ function AuthProvider ({children}){
             return response;
         } catch (error) {
             setUser(null);
+            throw error;
         }
     }
 

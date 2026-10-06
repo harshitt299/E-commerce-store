@@ -1,73 +1,60 @@
 import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import {Link , useNavigate } from "react-router-dom";
-function Login () {
 
-  const [formData , setFormData] = useState({
-    email : "",
-    password : ""
-  });
-
-  const {login} = useAuth();
+export default function Login() {
+  const { login } = useAuth();
   const navigate = useNavigate();
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleChange = (e)=>{
-   const {name ,value} = e.target;
-   setFormData ({
-    ...formData , 
-    [name] : value
-   });
-  };
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
 
-
-  const handleSubmit = async(e)=>{
-    e.preventDefault();
-
+  const handleSubmit = async (e) => {
+    e.preventDefault(); // page reload rokta hai
+    setError("");
+    setSubmitting(true);
     try {
-      const response = await login(formData);
-      console.log(response);
+      await login(form);
       navigate("/");
-    } catch (error) {
-      console.log(error);
+    } catch (err) {
+      setError(err.response?.data?.message || "Login failed");
+    } finally {
+      setSubmitting(false);
     }
   };
 
-
-
   return (
-    <div>
-     <form onSubmit={handleSubmit}>
-      <input 
-      type="email" 
-      name="email"
-       placeholder="Enter Your email"
-        value={formData.email}
-         onChange={handleChange}
-         />
-
-      <input 
-      type="password" 
-      name="password" 
-      placeholder="Enter Your password" 
-      value={formData.password} 
-      onChange={handleChange} 
-      />
-      <button type="submit">Login</button>
-
-     </form>
-
-
-     <p>
-        Don't have an account?
-         <Link
-           to="/register">Register
-         </Link>
-
-       </p>
-
-
+    <div style={{ maxWidth: 360, margin: "60px auto" }}>
+      <h2>Login</h2>
+      <form onSubmit={handleSubmit}>
+        <input
+          name="email"
+          type="email"
+          placeholder="Email"
+          value={form.email}
+          onChange={handleChange}
+          required
+        />
+        <input
+          name="password"
+          type="password"
+          placeholder="Password"
+          value={form.password}
+          onChange={handleChange}
+          required
+        />
+        {error && <p style={{ color: "red" }}>{error}</p>}
+        <button disabled={submitting}>
+          {submitting ? "Logging in..." : "Login"}
+        </button>
+      </form>
+      <p>
+        Don't have an Account? <Link to="/register">Register</Link>
+      </p>
     </div>
-  )
+  );
 }
 
-export default Login;

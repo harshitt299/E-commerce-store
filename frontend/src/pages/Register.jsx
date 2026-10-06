@@ -1,62 +1,47 @@
 import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import {Link , useNavigate } from "react-router-dom";
 
-function Register() {
-
-  const [formData, setFormData] =useState({
-    name : "",
-    email : "",
-    password : "",
-   
-  });
-
-  const  {register} = useAuth();
+export default function Register() {
+  const { register } = useAuth();
   const navigate = useNavigate();
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handlechange = (e)=>{
-    const {name ,value} = e.target;
-    setFormData({
-      ...formData ,
-      [name] : value,
-    });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSubmitting(true);
+    try {
+      await register(form);
+      navigate("/");
+    } catch (err) {
+      setError(err.response?.data?.message || "Registration failed");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-
-  const handleSumbit = async(e)=>{
-    e.preventDefault();
-
-    try {
-      const response = await register(formData);
-      console.log(response);
-      navigate("/");
-    } catch (error) {
-      console.log(error)
-
-    }
-  }
   return (
-    <div>
-      <form onSubmit={handleSumbit}>
-    <input type="text" name="name" placeholder="Enter your name" value={formData.name} onChange={handlechange} />
-    <input type="email" name="email" placeholder="Enter your email" value={formData.email} onChange={handlechange} />
-    <input type="password" name="password" placeholder="Enter your password" value={formData.password} onChange={handlechange} />
-
-    <button type="submit">
-                    Register
-                </button>
-
+    <div style={{ maxWidth: 360, margin: "60px auto" }}>
+      <h2>Register</h2>
+      <form onSubmit={handleSubmit}>
+        <input name="name" placeholder="Name" value={form.name} onChange={handleChange} required />
+        <input name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange} required />
+        <input name="password" type="password" placeholder="Password" value={form.password} onChange={handleChange} required minLength={6} />
+        {error && <p style={{ color: "red" }}>{error}</p>}
+        <button disabled={submitting}>
+          {submitting ? "Creating..." : "Register"}
+        </button>
       </form>
       <p>
-         Already have an account?
-
-           <Link to="/login">
-                    Login
-            </Link>
+         Already have an Account <Link to="/login">Login</Link>
       </p>
     </div>
-  )
+  );
 }
 
-export default Register
