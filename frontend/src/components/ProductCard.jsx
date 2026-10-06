@@ -11,20 +11,19 @@ function ProductCard({product}) {
         color: "inherit",
       }}>
          <img
-        src={product.image}
+        src={product.images?.[0]}
         alt={product.name}
         style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 6 }}
          />
         <h3 style={{ margin: "8px 0 4px" }}>{product.name}</h3>
         <p style={{ margin: 0, fontWeight: 600 }}>₹{product.price}</p>
-        <p style={{ margin: 0, fontWeight: 600 }}>₹{product.description}</p>
-        <p style={{ margin: 0, fontWeight: 600 }}>₹{product.brand}</p>
-        <p style={{ margin: 0, fontWeight: 600 }}>₹{product.category}</p>
-        <p style={{ margin: 0, fontWeight: 600 }}>₹{product.rating}</p>
+        <p style={{ margin: 0, fontWeight: 600 }}>{product.description}</p>
+        <p style={{ margin: 0, fontWeight: 600 }}>{product.brand}</p>
+        <p style={{ margin: 0, fontWeight: 600 }}>{product.category}</p>
+        <p style={{ margin: 0, fontWeight: 600 }}><span>{product.ratings?.average??0}</span><span>{product.ratings?.count??0}</span></p>
 
     </Link>
   )
 }
 
-export default ProductCard
-{Product}
+export default ProductCard;
