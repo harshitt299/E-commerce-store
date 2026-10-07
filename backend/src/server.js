@@ -23,7 +23,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.urlencoded({ extended: true }));
-app.use("/api/v1/orders/webhook", express.raw({type:"application/jscon"}))
+app.use("/api/v1/orders/webhook", express.raw({type:"application/json"}))
 app.use(express.json());
 app.use(cookieParser());
 

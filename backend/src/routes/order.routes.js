@@ -6,6 +6,10 @@ import { cancelOrder, createOrder , getAllOrders, getMyOrderById, getMyOrders, p
 const router  = express.Router();
 
 
+// Webhook PUBLIC hai - Razorpay ke paas JWT cookie nahi hoti
+// raw body server.js se already aa rahi hai, isliye yaha duplicate raw nahi chahiye
+router.post("/webhook", paymentWebhook);
+
 router.use(protect);
 
 router.post("/create" ,createOrder);
@@ -15,7 +19,6 @@ router.get("/myorder/:id" , getMyOrderById);
 router.get("/allorders" , isAdmin , getAllOrders);
 router.patch("/allorders/:id/status" , isAdmin , updateOrderStatus);
 router.patch("/myorder/:id/cancel" ,cancelOrder);
-router.post("/webhook", express.raw({type:"application/json"}),paymentWebhook);
 
 export default router;
 

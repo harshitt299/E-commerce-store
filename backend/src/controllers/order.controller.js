@@ -64,28 +64,36 @@ const createOrder = asynchandler(async(req,res)=>{
 
 }
 
+
 //  if payment === online (through razorpay)
- const options = {
-    amount : Math.round(totalAmount*100),
-    currency : "INR",
-    receipt : `receipt_${Date.now()}`,
- };
-
- const razorpayOrder = await razorpayInstance.orders.create(options);
-
-//  save pending orders in dbs
-const newOrder = await Order.create({
+    const pendingOrder = await Order.create({
     user : userId,
     orderItems,
     shippingAddress,
     paymentMethod,
     totalAmount,
-    isPaid: false,
-    paymentResult :{
-        razorpay_order_id : razorpayOrder.id,
-        status : "created",
+    isPaid:false,
+    paymentResult : {
+        status : "created"
+    }
+    });
+
+ const options = {
+    amount : Math.round(totalAmount*100),
+    currency : "INR",
+    receipt : `receipt_${Date.now()}`,
+    notes : {
+        order_id : pendingOrder._id.toString()
     },
-});
+ };
+
+ const razorpayOrder = await razorpayInstance.orders.create(options);
+
+//  save pending orders in dbs
+pendingOrder.paymentResult.razorpay_order_id = razorpayOrder.id;
+await pendingOrder.save();
+const newOrder = pendingOrder;
+
 
  res.status(201).json({
     success : true,
@@ -123,6 +131,18 @@ const verifyPayment = asynchandler(async(req,res)=>{
         throw new ApiError(404, "Order not found!");
     }
 
+
+    if (order.user.toString() !== req.user._id.toString()) {
+    throw new ApiError(403, "You are not authorised for this order!");
+     }
+
+    if (order.paymentResult?.razorpay_order_id !== razorpay_order_id) {
+    throw new ApiError(400, "Razorpay order id mismatch!");
+     }
+     if(order.isPaid){
+        throw new ApiError(400, "Order already paid!");
+     }
+
     order.isPaid =true;
     order.paidAt = Date.now();
     order.paymentResult = {
@@ -154,11 +174,12 @@ const verifyPayment = asynchandler(async(req,res)=>{
 const paymentWebhook = asynchandler(async (req, res) => {
     const webhookSignature = req.headers["x-razorpay-signature"];
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    const rawBody = req.body;
 
     // Verify signature
     const expectedSignature = crypto
         .createHmac("sha256", webhookSecret)
-        .update(JSON.stringify(req.body))
+        .update(rawBody)
         .digest("hex");
 
     if (expectedSignature !== webhookSignature) {
@@ -168,7 +189,7 @@ const paymentWebhook = asynchandler(async (req, res) => {
              });
     }
 
-    const event = req.body;
+    const event = JSON.parse(rawBody);
     console.log("Webhook received:", event.event, event.payload?.payment?.entity?.id);
 
     try {
